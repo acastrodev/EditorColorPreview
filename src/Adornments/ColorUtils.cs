@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -8,7 +8,8 @@ namespace EditorColorPreview
 
     public static class ColorUtils
     {
-        public static readonly Regex _regex = new(@"(?<=.*:.*)(#(?:[0-9a-f]{2}){2,4}\b|(#[0-9a-f]{3})\b|\b(color|rgb|rgb|hsl|hwb|lab|lch|oklab|oklch)a?\(((srgb|srgb-linear|display-p3|a98-rgb|photo-rgb|rec2020|xyz-d50|xyz-d65|xyz)\s*)?((-?(\d*\.)?\d+(%|deg)?|none)(,|,\s*|\s*)){2}(-?(\d*\.)?\d+(%|deg)?|none){1}((,|,\s*|\s*)-?(\d*\.)?\d+(%|deg)?|none)?\s*[\/\d\.]*%?\s*([\d\.]*)*\)|(?<=[\s""'])(black|silver|gray|whitesmoke|maroon|red|purple|fuchsia|green|lime|olivedrab|yellow|navy|blue|teal|aquamarine|orange|aliceblue|antiquewhite|aqua|azure|beige|bisque|blanchedalmond|blueviolet|brown|burlywood|cadetblue|chartreuse|chocolate|coral|cornflowerblue|cornsilk|crimson|darkblue|darkcyan|darkgoldenrod|darkgray|darkgreen|darkgrey|darkkhaki|darkmagenta|darkolivegreen|darkorange|darkorchid|darkred|darksalmon|darkseagreen|darkslateblue|darkslategray|darkslategrey|darkturquoise|darkviolet|deeppink|deepskyblue|dimgray|dimgrey|dodgerblue|firebrick|floralwhite|forestgreen|gainsboro|ghostwhite|goldenrod|gold|greenyellow|grey|honeydew|hotpink|indianred|indigo|ivory|khaki|lavenderblush|lavender|lawngreen|lemonchiffon|lightblue|lightcoral|lightcyan|lightgoldenrodyellow|lightgray|lightgreen|lightgrey|lightpink|lightsalmon|lightseagreen|lightskyblue|lightslategray|lightslategrey|lightsteelblue|lightyellow|limegreen|linen|mediumaquamarine|mediumblue|mediumorchid|mediumpurple|mediumseagreen|mediumslateblue|mediumspringgreen|mediumturquoise|mediumvioletred|midnightblue|mintcream|mistyrose|moccasin|navajowhite|oldlace|olive|orangered|orchid|palegoldenrod|palegreen|paleturquoise|palevioletred|papayawhip|peachpuff|peru|pink|plum|powderblue|rosybrown|royalblue|saddlebrown|salmon|sandybrown|seagreen|seashell|sienna|skyblue|slateblue|slategray|slategrey|snow|springgreen|steelblue|tan|thistle|tomato|transparent|turquoise|violet|wheat|white|yellowgreen|rebeccapurple)\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        // Add timeout to prevent regex hangs - 100ms should be more than enough for normal cases
+        public static readonly Regex _regex = new(@"(?<=.*:.*)(#(?:[0-9a-f]{2}){2,4}\b|(#[0-9a-f]{3})\b|\b(color|rgb|rgb|hsl|hwb|lab|lch|oklab|oklch)a?\(((srgb|srgb-linear|display-p3|a98-rgb|photo-rgb|rec2020|xyz-d50|xyz-d65|xyz)\s*)?((-?(\d*\.)?\d+(%|deg)?|none)(,|,\s*|\s*)){2}(-?(\d*\.)?\d+(%|deg)?|none){1}((,|,\s*|\s*)-?(\d*\.)?\d+(%|deg)?|none)?\s*[\/\d\.]*%?\s*([\d\.]*)*\)|(?<=[\s""'])(black|silver|gray|whitesmoke|maroon|red|purple|fuchsia|green|lime|olivedrab|yellow|navy|blue|teal|aquamarine|orange|aliceblue|antiquewhite|aqua|azure|beige|bisque|blanchedalmond|blueviolet|brown|burlywood|cadetblue|chartreuse|chocolate|coral|cornflowerblue|cornsilk|crimson|darkblue|darkcyan|darkgoldenrod|darkgray|darkgreen|darkgrey|darkkhaki|darkmagenta|darkolivegreen|darkorange|darkorchid|darkred|darksalmon|darkseagreen|darkslateblue|darkslategray|darkslategrey|darkturquoise|darkviolet|deeppink|deepskyblue|dimgray|dimgrey|dodgerblue|firebrick|floralwhite|forestgreen|gainsboro|ghostwhite|goldenrod|gold|greenyellow|grey|honeydew|hotpink|indianred|indigo|ivory|khaki|lavenderblush|lavender|lawngreen|lemonchiffon|lightblue|lightcoral|lightcyan|lightgoldenrodyellow|lightgray|lightgreen|lightgrey|lightpink|lightsalmon|lightseagreen|lightskyblue|lightslategray|lightslategrey|lightsteelblue|lightyellow|limegreen|linen|mediumaquamarine|mediumblue|mediumorchid|mediumpurple|mediumseagreen|mediumslateblue|mediumspringgreen|mediumturquoise|mediumvioletred|midnightblue|mintcream|mistyrose|moccasin|navajowhite|oldlace|olive|orangered|orchid|palegoldenrod|palegreen|paleturquoise|palevioletred|papayawhip|peachpuff|peru|pink|plum|powderblue|rosybrown|royalblue|saddlebrown|salmon|sandybrown|seagreen|seashell|sienna|skyblue|slateblue|slategray|slategrey|snow|springgreen|steelblue|tan|thistle|tomato|transparent|turquoise|violet|wheat|white|yellowgreen|rebeccapurple)\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
 
         public static Color HtmlToColor(string htmlColor)
         {
@@ -85,7 +86,15 @@ namespace EditorColorPreview
 
         public static MatchCollection MatchesColor(string html)
         {
-            return _regex.Matches(html);
+            try
+            {
+                return _regex.Matches(html);
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                // Regex timed out - return empty collection to prevent hangs
+                return new Regex("(?!)").Matches("");
+            }
         }
 
         private static Color HexToColor(string htmlColor)
