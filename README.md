@@ -1,20 +1,24 @@
-[marketplace]: https://marketplace.visualstudio.com/items?itemName=MadsKristensen.ColorPreview
-[vsixgallery]: http://vsixgallery.com/extension/EditorColorPreview.06059b78-ceae-4188-905d-be8877234e35/
-[repo]: https://github.com/madskristensen/EditorColorPreview
+[upstream]: https://github.com/madskristensen/EditorColorPreview
 
-# Color Preview for Visual Studio
+# Color Preview for Visual Studio (Fork)
 
-[![Build](https://github.com/madskristensen/EditorColorPreview/actions/workflows/build.yaml/badge.svg)](https://github.com/madskristensen/EditorColorPreview/actions/workflows/build.yaml)
-
-Download this extension from the [Visual Studio Marketplace][marketplace]
-or get the [CI build][vsixgallery].
+> **This is a fork of [EditorColorPreview][upstream] by [Mads Kristensen](https://github.com/madskristensen), licensed under the [Apache License 2.0](LICENSE).**
 
 ---
 
-Shows a color preview in front of all named colors, hex, rgb and hsl values in CSS and JavaScript files.
+Shows a color preview in front of all named colors, hex, rgb and hsl values in CSS, JavaScript, and C# files.
 
 ![color preview](art/screenshot.png)<br />
 **\*Figure 1**: Color preview in light theme and dark theme\*
+
+## Changes from upstream
+
+The following modifications were made to the original project:
+
+- Added support for C# files (`[ContentType("CSharp")]`)
+- Added color preview for C# color patterns: `new Color(r,g,b,a)`, `new Color32(r,g,b,a)`, target-typed `new(r,g,b,a)`, float variants, and any call with `Color`/`Color32` as the declared type (compatible with Unity, Godot, MonoGame, FNA, Raylib_cs)
+- Added a dedicated regex for C# color matching (independent of the CSS `:` lookbehind, skips `//` comments)
+- Updated `MatchesColor` to return `IEnumerable<Match>` combining results from both CSS and C# regex patterns
 
 ## Supported colors
 
@@ -72,15 +76,20 @@ These color formats are supported:
   - `oklch(0% 0 0)`
   - `oklch(100% 0 0)`
   - `oklch(50% 0.2 0)`
+- C# / Raylib_cs / MonoGame / FNA / Unity / Godot (in .cs files)
+  - `new Color(0, 128, 255, 200)`
+  - `new Color(0, 128, 255)`
+  - `new(0, 128, 255, 200)` (target-typed new)
+  - `new Color(1.0f, 0.5f, 0.0f)` (float, 0.0–1.0 range)
+  - `new Color(1.0f, 0.5f, 0.0f, 1.0f)`
+  - `new Color32(128, 255, 128, 255)` (Unity Color32)
+  - `Color.Color8(255, 0, 128, 255)` (Godot Color8)
+  - `Color c = Rgba(11, 15, 26);` (any call when `Color` or `Color32` is the type)
 
 [^1]: A color may be a valid color but still be outside the range of colors that can be produced by an output device (a screen, projector, or printer). It is said to be out of gamut for that color space.
 
-## How can I help?
+## License
 
-If you enjoy using the extension, please give it a ★★★★★ rating on the [Visual Studio Marketplace][marketplace].
+This project is licensed under the Apache License 2.0 — see the [LICENSE](LICENSE) file for details.
 
-Should you encounter bugs or if you have feature requests, head on over to the [GitHub repo][repo] to open an issue if one doesn't already exist.
-
-Pull requests are also very welcome, since I can't always get around to fixing all bugs myself. This is a personal passion project, so my time is limited.
-
-Another way to help out is to [sponsor me on GitHub](https://github.com/sponsors/madskristensen).
+Original work copyright © [Mads Kristensen](https://github.com/madskristensen). Modified work as described above.

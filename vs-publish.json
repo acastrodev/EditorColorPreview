@@ -1,9 +1,9 @@
 {
   "$schema": "http://json.schemastore.org/vsix-publish",
-  "categories": [ "web" ],
+  "categories": [ "web", "coding" ],
   "identity": {
     "internalName": "ColorPreview",
-    "tags": [ "color", "css", "rgb", "hex", "hsl" ]
+    "tags": [ "color", "css", "rgb", "hex", "hsl", "csharp", "unity", "godot", "monogame", "fna", "raylib" ]
   },
   "assetFiles": [
     {
@@ -12,6 +12,6 @@
     }
   ],
   "overview": "README.md",
-  "publisher": "MadsKristensen",
-  "repo": "https://github.com/MadsKristensen/EditorColorPreview"
+  "publisher": "AlexandreCastro",
+  "repo": "https://github.com/acastrodev/EditorColorPreview"
 }

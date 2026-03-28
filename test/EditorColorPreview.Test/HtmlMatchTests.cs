@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -34,30 +35,29 @@ namespace EditorColorPreview.Test
         [DataRow("color: oklch(53.85% .1725 320.67 / .7);")]
         public void HtmlMatches_Should_Match(string htmlString)
         {
-            MatchCollection matches = ColorUtils.MatchesColor(htmlString);
+            IEnumerable<Match> matches = ColorUtils.MatchesColor(htmlString);
 
-            Assert.AreEqual(1, matches.Count);
+            Assert.AreEqual(1, matches.Count());
         }
 
         [DataTestMethod]
         [DataRow("color: rgb(0, 0)")]
         [DataRow("color: hsx(120 30% 50%)")]
         [DataRow("color: hsl(120 30% 50% / 50%)")]
-        //[DataRow("color: hsl(120 30% / 0.5)")]
         [DataRow("background-color: color(profoto-rgb 0.4835 0.9167 0.2188)")]
         public void HtmlMatches_Should_Not_Match(string htmlString)
         {
-            MatchCollection matches = ColorUtils.MatchesColor(htmlString);
+            IEnumerable<Match> matches = ColorUtils.MatchesColor(htmlString);
 
-            Assert.AreEqual(0, matches.Count);
+            Assert.AreEqual(0, matches.Count());
         }
 
         [TestMethod]
         public void Multiple_Single_Line_Should_Be_Two()
         {
-            MatchCollection matches = ColorUtils.MatchesColor("$sass-color: hsl(0 0% 0%) color: hsl(0 0% 0%)");
+            IEnumerable<Match> matches = ColorUtils.MatchesColor("$sass-color: hsl(0 0% 0%) color: hsl(0 0% 0%)");
 
-            Assert.AreEqual(2, matches.Count);
+            Assert.AreEqual(2, matches.Count());
         }
     }
 }

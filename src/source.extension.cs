@@ -8,13 +8,13 @@ namespace EditorColorPreview
 {
     internal sealed partial class Vsix
     {
-        public const string Id = "EditorColorPreview.06059b78-ceae-4188-905d-be8877234e35";
+        public const string Id = "EditorColorPreview.0ad29806-3e85-4a3d-8ed8-08934c66375a";
         public const string Name = "Color Preview";
-        public const string Description = @"Shows a color preview in front of all named colors, hex, rgb and hsl values in CSS files.";
+        public const string Description = @"Shows a color preview in front of all named colors, hex, rgb and hsl values in CSS, JavaScript, and C# files. Supports Unity, Godot, MonoGame, FNA, and Raylib_cs color constructors.";
         public const string Language = "en-US";
-        public const string Version = "1.0.1";
-        public const string Author = "Mads Kristensen";
-        public const string Tags = "color, css, hsl, rgb, hex";
+        public const string Version = "1.1.0";
+        public const string Author = "Alexandre Castro";
+        public const string Tags = "color, css, hsl, rgb, hex, csharp, unity, godot, monogame, fna, raylib";
         public const bool IsPreview = false;
     }
 }

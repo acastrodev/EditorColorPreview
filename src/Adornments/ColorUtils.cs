@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -11,10 +12,26 @@ namespace EditorColorPreview
         // Add timeout to prevent regex hangs - 100ms should be more than enough for normal cases
         public static readonly Regex _regex = new(@"(?<=.*:.*)(#(?:[0-9a-f]{2}){2,4}\b|(#[0-9a-f]{3})\b|\b(color|rgb|rgb|hsl|hwb|lab|lch|oklab|oklch)a?\(((srgb|srgb-linear|display-p3|a98-rgb|photo-rgb|rec2020|xyz-d50|xyz-d65|xyz)\s*)?((-?(\d*\.)?\d+(%|deg)?|none)(,|,\s*|\s*)){2}(-?(\d*\.)?\d+(%|deg)?|none){1}((,|,\s*|\s*)-?(\d*\.)?\d+(%|deg)?|none)?\s*[\/\d\.]*%?\s*([\d\.]*)*\)|(?<=[\s""'])(black|silver|gray|whitesmoke|maroon|red|purple|fuchsia|green|lime|olivedrab|yellow|navy|blue|teal|aquamarine|orange|aliceblue|antiquewhite|aqua|azure|beige|bisque|blanchedalmond|blueviolet|brown|burlywood|cadetblue|chartreuse|chocolate|coral|cornflowerblue|cornsilk|crimson|darkblue|darkcyan|darkgoldenrod|darkgray|darkgreen|darkgrey|darkkhaki|darkmagenta|darkolivegreen|darkorange|darkorchid|darkred|darksalmon|darkseagreen|darkslateblue|darkslategray|darkslategrey|darkturquoise|darkviolet|deeppink|deepskyblue|dimgray|dimgrey|dodgerblue|firebrick|floralwhite|forestgreen|gainsboro|ghostwhite|goldenrod|gold|greenyellow|grey|honeydew|hotpink|indianred|indigo|ivory|khaki|lavenderblush|lavender|lawngreen|lemonchiffon|lightblue|lightcoral|lightcyan|lightgoldenrodyellow|lightgray|lightgreen|lightgrey|lightpink|lightsalmon|lightseagreen|lightskyblue|lightslategray|lightslategrey|lightsteelblue|lightyellow|limegreen|linen|mediumaquamarine|mediumblue|mediumorchid|mediumpurple|mediumseagreen|mediumslateblue|mediumspringgreen|mediumturquoise|mediumvioletred|midnightblue|mintcream|mistyrose|moccasin|navajowhite|oldlace|olive|orangered|orchid|palegoldenrod|palegreen|paleturquoise|palevioletred|papayawhip|peachpuff|peru|pink|plum|powderblue|rosybrown|royalblue|saddlebrown|salmon|sandybrown|seagreen|seashell|sienna|skyblue|slateblue|slategray|slategrey|snow|springgreen|steelblue|tan|thistle|tomato|transparent|turquoise|violet|wheat|white|yellowgreen|rebeccapurple)\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(100));
 
+        // Regex for C# color patterns: new Color(...), new Color32(...), new(...), or any call when Color/Color32 is the type
+        public static readonly Regex _csColorRegex = new(@"(?:\bnew(?:\s+Color(?:32)?)?\s*|(?<=\bColor(?:32)?\b.*)\b(?!new\b)[A-Za-z_]\w*\s*)\(\s*(\d*\.?\d+f?)\s*,\s*(\d*\.?\d+f?)\s*,\s*(\d*\.?\d+f?)\s*(?:,\s*(\d*\.?\d+f?)\s*)?\)", RegexOptions.Compiled, TimeSpan.FromMilliseconds(100));
+
+        // Regex for parsing a matched C# color value (no context needed, just extracts numbers)
+        private static readonly Regex _csColorParseRegex = new(@"\(\s*(\d*\.?\d+f?)\s*,\s*(\d*\.?\d+f?)\s*,\s*(\d*\.?\d+f?)\s*(?:,\s*(\d*\.?\d+f?)\s*)?\)", RegexOptions.Compiled, TimeSpan.FromMilliseconds(100));
+
         public static Color HtmlToColor(string htmlColor)
         {
             try
             {
+                if (htmlColor.StartsWith("new", StringComparison.Ordinal) && _csColorParseRegex.IsMatch(htmlColor))
+                {
+                    return CsColorToColor(htmlColor);
+                }
+
+                if (htmlColor.Length > 0 && char.IsUpper(htmlColor[0]) && _csColorParseRegex.IsMatch(htmlColor))
+                {
+                    return CsColorToColor(htmlColor);
+                }
+
                 // RGB
                 if (htmlColor.StartsWith("rgb", StringComparison.OrdinalIgnoreCase))
                 {
@@ -84,17 +101,10 @@ namespace EditorColorPreview
             }
         }
 
-        public static MatchCollection MatchesColor(string html)
+        public static IEnumerable<Match> MatchesColor(string html)
         {
-            try
-            {
-                return _regex.Matches(html);
-            }
-            catch (RegexMatchTimeoutException)
-            {
-                // Regex timed out - return empty collection to prevent hangs
-                return new Regex("(?!)").Matches("");
-            }
+            return _regex.Matches(html).OfType<Match>()
+                .Concat(_csColorRegex.Matches(html).OfType<Match>());
         }
 
         private static Color HexToColor(string htmlColor)
@@ -142,6 +152,55 @@ namespace EditorColorPreview
             }
 
             return Color.Empty;
+        }
+
+        private static Color CsColorToColor(string htmlColor)
+        {
+            // Parse C# color patterns — extracts (r, g, b[, a]) from any matched expression
+            Match match = _csColorParseRegex.Match(htmlColor);
+
+            if (!match.Success)
+            {
+                return Color.Empty;
+            }
+
+            string v1 = match.Groups[1].Value;
+            string v2 = match.Groups[2].Value;
+            string v3 = match.Groups[3].Value;
+            string v4 = match.Groups[4].Success ? match.Groups[4].Value : null;
+
+            // Detect float variant by checking for 'f' suffix or decimal point
+            bool isFloat = v1.Contains('f') || v1.Contains('.') ||
+                           v2.Contains('f') || v2.Contains('.') ||
+                           v3.Contains('f') || v3.Contains('.');
+
+            if (isFloat)
+            {
+                double r = ParseCsFloat(v1);
+                double g = ParseCsFloat(v2);
+                double b = ParseCsFloat(v3);
+                double a = v4 != null ? ParseCsFloat(v4) : 1.0;
+
+                return Color.FromArgb(
+                    ClampRgb((int)Math.Round(ClampZeroToOne(a) * 255.0)),
+                    ClampRgb((int)Math.Round(ClampZeroToOne(r) * 255.0)),
+                    ClampRgb((int)Math.Round(ClampZeroToOne(g) * 255.0)),
+                    ClampRgb((int)Math.Round(ClampZeroToOne(b) * 255.0)));
+            }
+            else
+            {
+                int r = ClampRgb(int.Parse(v1));
+                int g = ClampRgb(int.Parse(v2));
+                int b = ClampRgb(int.Parse(v3));
+                int a = v4 != null ? ClampRgb(int.Parse(v4)) : 255;
+
+                return Color.FromArgb(a, r, g, b);
+            }
+        }
+
+        private static double ParseCsFloat(string value)
+        {
+            return double.Parse(value.TrimEnd('f', 'F'));
         }
 
         private static Color ArgbToColor(string htmlColor)
